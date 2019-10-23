@@ -30,6 +30,7 @@ def main(args):
     args.remote_save_dir = util.get_save_dir(args.remote_save_dir, args.name, training=True)
     log = util.get_logger(args.save_dir, args.remote_save_dir, args.name)
     tbx = SummaryWriter(args.save_dir)
+    remote_tbx = SummaryWriter(args.remote_save_dir)
     device, args.gpu_ids = util.get_available_devices()
     log.info(f'Args: {dumps(vars(args), indent=4, sort_keys=True)}')
     args.batch_size *= max(1, len(args.gpu_ids))
@@ -66,6 +67,12 @@ def main(args):
                                  metric_name=args.metric_name,
                                  maximize_metric=args.maximize_metric,
                                  log=log)
+    remote_saver = util.CheckpointSaver(args.remote_save_dir,
+                                 max_checkpoints=args.max_checkpoints,
+                                 metric_name=args.metric_name,
+                                 maximize_metric=args.maximize_metric,
+                                 log=log)
+
 
     # Get optimizer and scheduler
     optimizer = optim.Adadelta(model.parameters(), args.lr,
@@ -127,6 +134,10 @@ def main(args):
                 tbx.add_scalar('train/LR',
                                optimizer.param_groups[0]['lr'],
                                step)
+                remote_tbx.add_scalar('train/NLL', loss_val, step)
+                remote_tbx.add_scalar('train/LR',
+                               optimizer.param_groups[0]['lr'],
+                               step)
 
                 steps_till_eval -= batch_size
                 if steps_till_eval <= 0:
@@ -140,6 +151,7 @@ def main(args):
                                                   args.max_ans_len,
                                                   args.use_squad_v2)
                     saver.save(step, model, results[args.metric_name], device)
+                    remote_saver.save(step, model, results[args.metric_name], device)
                     ema.resume(model)
 
                     # Log to console
@@ -150,7 +162,14 @@ def main(args):
                     log.info('Visualizing in TensorBoard...')
                     for k, v in results.items():
                         tbx.add_scalar(f'dev/{k}', v, step)
+                        remote_tbx.add_scalar(f'dev/{k}', v, step)
                     util.visualize(tbx,
+                                   pred_dict=pred_dict,
+                                   eval_path=args.dev_eval_file,
+                                   step=step,
+                                   split='dev',
+                                   num_visuals=args.num_visuals)
+                    util.visualize(remote_tbx,
                                    pred_dict=pred_dict,
                                    eval_path=args.dev_eval_file,
                                    step=step,
