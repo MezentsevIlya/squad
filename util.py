@@ -474,12 +474,13 @@ def get_save_dir(base_dir, name, training, id_max=100):
                        Delete old save directories or use another name.')
 
 
-def get_logger(log_dir, name):
+def get_logger(log_dir, remote_log_dir, name):
     """Get a `logging.Logger` instance that prints to the console
     and an auxiliary file.
 
     Args:
         log_dir (str): Directory in which to create the log file.
+        remote_log_dir (str): Remote directory in which to create the log file.
         name (str): Name to identify the logs.
 
     Returns:
@@ -507,8 +508,11 @@ def get_logger(log_dir, name):
 
     # Log everything (i.e., DEBUG level and above) to a file
     log_path = os.path.join(log_dir, 'log.txt')
+    remote_log_path = os.path.join(remote_log_dir, 'log.txt')
     file_handler = logging.FileHandler(log_path)
     file_handler.setLevel(logging.DEBUG)
+    remote_file_handler = logging.FileHandler(remote_log_path)
+    remote_file_handler.setLevel(logging.DEBUG)
 
     # Log everything except DEBUG level (i.e., INFO level and above) to console
     console_handler = StreamHandlerWithTQDM()
@@ -518,12 +522,14 @@ def get_logger(log_dir, name):
     file_formatter = logging.Formatter('[%(asctime)s] %(message)s',
                                        datefmt='%m.%d.%y %H:%M:%S')
     file_handler.setFormatter(file_formatter)
+    remote_file_handler.setFormatter(file_formatter)
     console_formatter = logging.Formatter('[%(asctime)s] %(message)s',
                                           datefmt='%m.%d.%y %H:%M:%S')
     console_handler.setFormatter(console_formatter)
 
     # add the handlers to the logger
     logger.addHandler(file_handler)
+    logger.addHandler(remote_file_handler)
     logger.addHandler(console_handler)
 
     return logger

@@ -221,6 +221,10 @@ def add_train_test_args(parser):
                         type=str,
                         default='./save/',
                         help='Base directory for saving information.')
+    parser.add_argument('--remote_save_dir',
+                        type=str,
+                        default='./remote_save/',
+                        help='Base directory for saving information.')
     parser.add_argument('--batch_size',
                         type=int,
                         default=64,
